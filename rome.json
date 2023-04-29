@@ -3,5 +3,14 @@
 		"formatter": {
 			"quoteStyle": "single"
 		}
+	},
+	"linter": {
+		"rules": {
+			"recommended": true,
+			"suspicious": {
+				"noDoubleEquals": "off",
+				"noExplicitAny": "off"
+			}
+		}
 	}
 }
