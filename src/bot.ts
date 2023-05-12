@@ -1,5 +1,5 @@
 import { IConfigService } from './config/config.interface';
-import { Telegraf } from 'telegraf';
+import { Scenes, Telegraf } from 'telegraf';
 import { IBotContext } from './context/context.interface';
 import LocalSession from 'telegraf-session-local';
 import { Command } from './commands/command.class';
@@ -8,11 +8,13 @@ import { inject, injectable } from 'inversify';
 import { ILogger } from './helpers/logger.interface';
 import { TYPES } from './types';
 import 'reflect-metadata';
+import { AuthScene } from './scenes/auth.scene';
 
 @injectable()
 export class Bot {
 	bot: Telegraf<IBotContext>;
 	commands: Command[] = [];
+	scenes: Scenes.BaseScene<IBotContext>[] = [];
 
 	constructor(
 		@inject(TYPES.ConfigService) private readonly configService: IConfigService,
@@ -22,10 +24,24 @@ export class Bot {
 		this.bot.use(
 			new LocalSession({ database: 'session_db.json' }).middleware(),
 		);
+
+		const scene = new AuthScene(this.bot, this.logger).build();
+
+		const stage = new Scenes.Stage<IBotContext>([scene]);
+		this.bot.use(stage.middleware());
+		this.bot.use((ctx, next) => {
+			// we now have access to the the fields defined above
+			ctx.session.isAuth ??= true;
+			ctx.scene.session.mySceneData ??= '0';
+			return next();
+		});
+		this.bot.on('message', (ctx) => {
+			ctx.scene.enter('auth');
+		});
 	}
 
 	init() {
-		this.commands.push(new StartCommand(this.bot));
+		this.commands.push(new StartCommand(this.bot, this.logger));
 		for (const command of this.commands) {
 			command.handle();
 		}
