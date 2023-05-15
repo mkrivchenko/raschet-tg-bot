@@ -21,22 +21,25 @@ export class Bot {
 		@inject(TYPES.ILogger) private logger: ILogger,
 	) {
 		this.bot = new Telegraf<IBotContext>(this.configService.get('TOKEN'));
+
+		// TODO: Заменить на Redis
 		this.bot.use(
 			new LocalSession({ database: 'session_db.json' }).middleware(),
 		);
 
-		const scene = new AuthScene(this.bot, this.logger).build();
+		this.scenes.push(
+			new AuthScene(this.logger)
+				.setPassword(this.configService.get('PASSWORD'))
+				.build(),
+		);
 
-		const stage = new Scenes.Stage<IBotContext>([scene]);
+		const stage = new Scenes.Stage<IBotContext>(this.scenes);
 		this.bot.use(stage.middleware());
 		this.bot.use((ctx, next) => {
 			// we now have access to the the fields defined above
-			ctx.session.isAuth ??= true;
+			ctx.session.isAuth ??= false;
 			ctx.scene.session.mySceneData ??= '0';
 			return next();
-		});
-		this.bot.on('message', (ctx) => {
-			ctx.scene.enter('auth');
 		});
 	}
 
@@ -46,29 +49,9 @@ export class Bot {
 			command.handle();
 		}
 
-		// this.bot.on(message('text'), (ctx) => {
-		// 	ctx.session.messageCount++;
-
-		// 	if (ctx.session.isAuth === true) {
-		// 		ctx.reply('Its AUTH Success');
-		// 		// this.bot.hears('pass', (ctx: IBotContext) => {
-		// 		// 	console.log('pass');
-		// 		// });
-		// 	} else {
-		// 		console.log(ctx.update);
-
-		// 		if (ctx.message.text == '1') {
-		// 			ctx.session.isAuth = true;
-		// 			ctx.reply('Auth succes');
-		// 		} else {
-		// 			ctx.reply('X - is not AUTH!');
-		// 		}
-		// 	}
-		// });
-
-		// this.bot.hears(/pass/, (ctx: IBotContext) => {
-		// 	console.log('pass');
-		// });
+		this.bot.hears('auth', (ctx) => {
+			ctx.scene.enter('auth');
+		});
 
 		try {
 			this.bot.launch();
@@ -78,6 +61,3 @@ export class Bot {
 		}
 	}
 }
-
-// const bot = new Bot(new ConfigService(), logger);
-// bot.init();

@@ -18,8 +18,9 @@ export class StartCommand extends Command {
 	handle(): void {
 		this.botInstance.start((ctx) => {
 			ctx.session.isAuth = false;
-			ctx.session.messageCount = 0;
+			// ctx.session.messageCount = 0;
 			ctx.reply(`Hello, ${ctx.from.first_name}`);
+			ctx.scene.enter('auth');
 		});
 	}
 }

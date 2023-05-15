@@ -1,4 +1,4 @@
-import { Scenes, Telegraf } from 'telegraf';
+import { Scenes } from 'telegraf';
 import { IBotContext } from '../context/context.interface';
 import { Scene } from './scene.class';
 import { inject, injectable } from 'inversify';
@@ -8,37 +8,45 @@ import 'reflect-metadata';
 
 @injectable()
 export class AuthScene extends Scene {
-	constructor(
-		@inject(TYPES.Bot) private botInstance: Telegraf<IBotContext>,
-		@inject(TYPES.ILogger) private loggerService: ILogger,
-	) {
-		super(botInstance, loggerService);
+	private scene: Scenes.BaseScene<IBotContext>;
+	private password: RegExp;
 
-		this.loggerService.info('Scene "Auth" init');
+	constructor(
+		@inject(TYPES.ILogger) private logger: ILogger,
+	) {
+		super(logger);
+		this.scene = new Scenes.BaseScene<IBotContext>('auth');
+		this.password ??= /^1111/;
+		this.logger.info('Scene "Auth" init');
 	}
 
-	handle(): void {
-		throw new Error('Method not implemented.');
+	public setPassword(password: string) {
+		this.password = new RegExp(`^${password}`);
+		return this;
 	}
 
 	public build() {
-		const { enter, leave } = Scenes.Stage;
-
-		const authScene = new Scenes.BaseScene<IBotContext>('auth');
-		authScene.enter((ctx) => ctx.reply('Hi'));
-		authScene.leave((ctx) => ctx.reply('Bye'));
-		authScene.hears('hi', enter<IBotContext>('auth'));
-		authScene.on('message', (ctx) => {
-			ctx.replyWithMarkdownV2('Send **hi**');
-			this.loggerService.info(`enter to 'Auth' scene`);
-			this.loggerService.info(ctx.scene);
-			this.loggerService.info(ctx.session);
+		this.scene.enter((ctx) => {
+			ctx.reply('Чтобы продолжить, нужно авторизоваться. Введите пароль');
+			this.logger.info(`${ctx.from?.username} enter to 'Auth' scene`);
 		});
 
-		return authScene;
+		this.scene.leave((ctx) => {
+			ctx.reply('Bye');
+			this.logger.info(`${ctx.from?.username} leave from 'Auth' scene`);
+		});
+
+		this.scene.hears(this.password, (ctx) => {
+			ctx.reply('Auth success');
+			ctx.session.isAuth = true;
+			ctx.scene.leave();
+		});
+
+		this.scene.on('message', (ctx) => {
+			ctx.reply('Пароль не верный. Введите пароль');
+			this.logger.info(ctx.session);
+		});
+
+		return this.scene;
 	}
 }
-
-// export class AuthStage {
-
-// }
