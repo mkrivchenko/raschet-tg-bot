@@ -2,3 +2,4 @@
 /dist
 .env
 session_db.json
+.swc
