@@ -4,6 +4,7 @@ import { IBotContext } from '../context/context.interface';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../types';
 import { ILogger } from '../helpers/logger.interface';
+import { SceneEnter } from '../scenes/scenes.enum';
 
 @injectable()
 export class StartCommand extends Command {
@@ -20,7 +21,7 @@ export class StartCommand extends Command {
 			ctx.session.isAuth = false;
 			// ctx.session.messageCount = 0;
 			ctx.reply(`Hello, ${ctx.from.first_name}`);
-			ctx.scene.enter('auth');
+			ctx.scene.enter(SceneEnter.Auth);
 		});
 	}
 }
