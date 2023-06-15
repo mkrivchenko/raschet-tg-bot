@@ -9,6 +9,10 @@ import { ILogger } from './helpers/logger.interface';
 import { TYPES } from './types';
 import 'reflect-metadata';
 import { AuthScene } from './scenes/auth.scene';
+import { msgMenu } from './helpers/reply-messages';
+import { SceneEnter } from './scenes/scenes.enum';
+import { ActionTrigger } from './actions/action-trigger.enum';
+import { ServiseMenuScene } from './scenes/servise/servise-menu.scene';
 
 @injectable()
 export class Bot {
@@ -32,11 +36,11 @@ export class Bot {
 				.setPassword(this.configService.get('PASSWORD'))
 				.build(),
 		);
+		this.scenes.push(new ServiseMenuScene(this.logger).build());
 
 		const stage = new Scenes.Stage<IBotContext>(this.scenes);
 		this.bot.use(stage.middleware());
 		this.bot.use((ctx, next) => {
-			// we now have access to the the fields defined above
 			ctx.session.isAuth ??= false;
 			ctx.scene.session.mySceneData ??= '0';
 			return next();
@@ -49,8 +53,22 @@ export class Bot {
 			command.handle();
 		}
 
+		// debug code
 		this.bot.hears('auth', (ctx) => {
-			ctx.scene.enter('auth');
+			ctx.scene.enter(SceneEnter.Auth);
+		});
+
+		// debug code
+		this.bot.hears('Меню', (ctx) => {
+			ctx.reply(msgMenu.message, msgMenu.settings);
+		});
+
+		this.bot.action(ActionTrigger.Servise, (ctx) => {
+			ctx.scene.enter(SceneEnter.ServiseMenu);
+		});
+
+		this.bot.action(ActionTrigger.Sales, (ctx) => {
+			ctx.reply('Продажи');
 		});
 
 		try {
@@ -61,3 +79,14 @@ export class Bot {
 		}
 	}
 }
+
+// ctx.editMessageText('Сервис', {
+// 	parse_mode: 'MarkdownV2',
+// 	reply_markup: {
+// 		inline_keyboard: [
+// 			[Markup.button.callback('1', '1')],
+// 			[Markup.button.callback('2', '2')],
+// 			[Markup.button.webApp('WebApp', 'https://ya.ru')],
+// 		],
+// 	},
+// });

@@ -5,6 +5,7 @@ import { inject, injectable } from 'inversify';
 import { TYPES } from '../types';
 import { ILogger } from '../helpers/logger.interface';
 import 'reflect-metadata';
+import { msgMenu } from '../helpers/reply-messages';
 
 @injectable()
 export class AuthScene extends Scene {
@@ -15,7 +16,7 @@ export class AuthScene extends Scene {
 		@inject(TYPES.ILogger) private logger: ILogger,
 	) {
 		super(logger);
-		this.scene = new Scenes.BaseScene<IBotContext>('auth');
+		this.scene = new Scenes.BaseScene<IBotContext>('authScene');
 		this.password ??= /^1111/;
 		this.logger.info('Scene "Auth" init');
 	}
@@ -25,19 +26,23 @@ export class AuthScene extends Scene {
 		return this;
 	}
 
-	public build() {
+	public build(): Scenes.BaseScene<IBotContext> {
 		this.scene.enter((ctx) => {
 			ctx.reply('Чтобы продолжить, нужно авторизоваться. Введите пароль');
 			this.logger.info(`${ctx.from?.username} enter to 'Auth' scene`);
 		});
 
 		this.scene.leave((ctx) => {
-			ctx.reply('Bye');
+			ctx.reply('Auth success');
+
+			setTimeout(() => {
+				ctx.reply(msgMenu.message, msgMenu.settings);
+			}, 1000);
+
 			this.logger.info(`${ctx.from?.username} leave from 'Auth' scene`);
 		});
 
 		this.scene.hears(this.password, (ctx) => {
-			ctx.reply('Auth success');
 			ctx.session.isAuth = true;
 			ctx.scene.leave();
 		});
